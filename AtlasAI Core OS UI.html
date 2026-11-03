@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>ATLAS AI CORE OS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Orbitron:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    * {
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    input { user-select: text; -webkit-user-select: text; }
+    :focus-visible { outline: 2px solid #67e8f9; outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) { .pill-dot { animation: none; } }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #020617;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #a5f3fc;
+    }
+    body {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
+    }
+
+    /* Starfield background */
+    .starfield {
+      position: absolute;
+      inset: 0;
+      pointer-events: none !important;
+      z-index: 0;
+      background:
+        radial-gradient(1px 1px at 10% 20%, rgba(34,211,238,0.5), transparent),
+        radial-gradient(1px 1px at 30% 65%, rgba(34,211,238,0.35), transparent),
+        radial-gradient(1.5px 1.5px at 70% 30%, rgba(103,232,249,0.45), transparent),
+        radial-gradient(1px 1px at 85% 75%, rgba(34,211,238,0.4), transparent),
+        radial-gradient(1px 1px at 50% 50%, rgba(34,211,238,0.25), transparent),
+        radial-gradient(1.5px 1.5px at 15% 80%, rgba(103,232,249,0.35), transparent),
+        radial-gradient(1px 1px at 60% 15%, rgba(34,211,238,0.4), transparent),
+        radial-gradient(1px 1px at 40% 90%, rgba(34,211,238,0.3), transparent),
+        radial-gradient(1.5px 1.5px at 90% 40%, rgba(103,232,249,0.35), transparent),
+        radial-gradient(1px 1px at 25% 40%, rgba(34,211,238,0.3), transparent);
+      background-size: 100% 100%;
+    }
+    .starfield::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(circle, rgba(34,211,238,0.55) 1px, transparent 1px),
+        radial-gradient(circle, rgba(103,232,249,0.4) 1px, transparent 1px);
+      background-size: 48px 48px, 72px 72px;
+      background-position: 0 0, 24px 36px;
+      opacity: 0.35;
+    }
+
+    .app {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 0.75rem 0.85rem 0.65rem;
+      max-width: 28rem;
+      width: 100%;
+      margin: 0 auto;
+      gap: 0.65rem;
+      pointer-events: auto;
+    }
+    .top-row, .transcript-card, .reactor-stage, .telemetry {
+      position: relative;
+      z-index: 3;
+      pointer-events: auto;
+    }
+
+    /* Top pills row */
+    .top-row {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 0.55rem;
+      flex-shrink: 0;
+    }
+    .pill {
+      background: rgba(6, 18, 32, 0.92);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      border-radius: 1rem;
+      padding: 0.7rem 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.08), inset 0 0 12px rgba(6, 182, 212, 0.04);
+    }
+    .pill-dot {
+      width: 0.55rem;
+      height: 0.55rem;
+      border-radius: 50%;
+      background: #22d3ee;
+      box-shadow: 0 0 8px #22d3ee;
+      flex-shrink: 0;
+      animation: pulse-dot 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 8px #22d3ee; }
+      50% { opacity: 0.5; box-shadow: 0 0 4px #22d3ee; }
+    }
+    .pill-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+      min-width: 0;
+    }
+    .pill-title {
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-weight: 700;
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      color: #67e8f9;
+      text-transform: uppercase;
+    }
+    .pill-sub {
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-weight: 600;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      color: #67e8f9;
+      text-transform: uppercase;
+      margin-top: 0.1rem;
+    }
+    .pill-key, #status-pill-wrap {
+      cursor: pointer;
+      -webkit-tap-highlight-color: rgba(34, 211, 238, 0.2);
+    }
+    .pill-key {
+      justify-content: center;
+    }
+    .pill-key i {
+      color: #22d3ee;
+      font-size: 0.95rem;
+    }
+    .pill-key .pill-title { font-size: 0.68rem; }
+    .pill-key .pill-sub { color: #22d3ee; }
+    .pill-key:active, #status-pill-wrap:active, #reactor-core:active, #main-mic-button:active {
+      transform: scale(0.97);
+      opacity: 0.9;
+    }
+
+    /* Transcript card */
+    .transcript-card {
+      background: rgba(6, 18, 32, 0.92);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      border-radius: 1rem;
+      padding: 0.75rem 0.9rem 0.85rem;
+      flex-shrink: 0;
+      box-shadow: 0 0 24px rgba(6, 182, 212, 0.06);
+      position: relative;
+      z-index: 2;
+    }
+    .transcript-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.55rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+    }
+    .transcript-label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-weight: 600;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      color: #22d3ee;
+      text-transform: uppercase;
+    }
+    .transcript-label i { font-size: 0.85rem; }
+    .ready-badge {
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-size: 0.55rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #6ee7b7;
+      border: 1px solid rgba(52, 211, 153, 0.55);
+      border-radius: 999px;
+      padding: 0.25rem 0.55rem;
+      text-transform: uppercase;
+    }
+    #transcript-feed {
+      margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: #a5f3fc;
+      font-style: italic;
+      min-height: 3.2rem;
+      max-height: 5.5rem;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #media-output-container {
+      margin-top: 0.5rem;
+    }
+    #media-output-container.hidden { display: none; }
+
+    /* Center reactor */
+    .reactor-stage {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .reactor-wrap {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      max-width: 62vw;
+      max-height: 62vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    #canvas-container {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 1;
+      pointer-events: none;
+    }
+    #canvas-container canvas {
+      display: block !important;
+      width: 100% !important;
+      height: 100% !important;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .reactor-core {
+      position: relative;
+      z-index: 3;
+      width: 58%;
+      height: 58%;
+      min-width: 120px;
+      min-height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 50% 38%, rgba(18, 48, 72, 0.97) 0%, rgba(4, 14, 28, 0.98) 65%, rgba(2, 8, 18, 1) 100%);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      box-shadow:
+        0 0 40px rgba(6, 182, 212, 0.18),
+        inset 0 0 36px rgba(6, 182, 212, 0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      cursor: pointer;
+      pointer-events: auto;
+      -webkit-tap-highlight-color: rgba(34, 211, 238, 0.2);
+      padding: 0.75rem 0.5rem;
+      box-sizing: border-box;
+    }
+    .reactor-core i {
+      font-size: 1.75rem;
+      color: #22d3ee;
+      filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.7));
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    #main-mic-button {
+      appearance: none;
+      border: 1px solid rgba(6, 182, 212, 0.45);
+      background: rgba(4, 16, 32, 0.95);
+      color: #67e8f9;
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      line-height: 1.2;
+      padding: 0.55rem 0.95rem;
+      min-height: 2rem;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(6, 182, 212, 0.2);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    #main-mic-button:active {
+      transform: scale(0.96);
+    }
+
+    /* Bottom telemetry */
+    .telemetry {
+      flex-shrink: 0;
+      background: rgba(6, 18, 32, 0.92);
+      border: 1px solid rgba(6, 182, 212, 0.35);
+      border-radius: 1rem;
+      padding: 0.7rem 0.5rem;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr auto 1fr;
+      align-items: center;
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.06);
+    }
+    .tele-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      min-width: 0;
+    }
+    .tele-item i {
+      color: #22d3ee;
+      font-size: 0.95rem;
+      flex-shrink: 0;
+    }
+    .tele-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
+      min-width: 0;
+    }
+    .tele-label {
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-size: 0.5rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: #22d3ee;
+      text-transform: uppercase;
+    }
+    .tele-value {
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #e0f2fe;
+      text-transform: uppercase;
+    }
+    .tele-divider {
+      width: 1px;
+      height: 1.6rem;
+      background: rgba(6, 182, 212, 0.3);
+    }
+
+    /* Key modal */
+    #key-modal {
+      position: fixed !important;
+      inset: 0;
+      z-index: 9999 !important;
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      background: rgba(2, 6, 14, 0.92);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      padding: max(4.5rem, calc(env(safe-area-inset-top, 0px) + 3rem)) 0.85rem max(1rem, env(safe-area-inset-bottom, 0px));
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    #key-modal:not(.hidden) { display: flex !important; }
+    #key-modal.hidden { display: none !important; }
+    #key-modal-panel {
+      width: 100%;
+      max-width: 22rem;
+      background: rgba(6, 18, 32, 0.98);
+      border: 1px solid rgba(34, 211, 238, 0.4);
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(6, 182, 212, 0.15);
+    }
+    .modal-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid rgba(6, 182, 212, 0.25);
+    }
+    .modal-head h3 {
+      margin: 0;
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-size: 0.8rem;
+      color: #67e8f9;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .modal-head button {
+      background: none;
+      border: none;
+      color: #22d3ee;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+    .modal-body {
+      padding: 0.85rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .modal-body label {
+      display: block;
+      font-family: ui-monospace, monospace;
+      font-size: 0.6rem;
+      color: #67e8f9;
+      text-transform: uppercase;
+      margin-bottom: 0.3rem;
+      letter-spacing: 0.06em;
+    }
+    .modal-body input {
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border-radius: 0.55rem;
+      background: rgba(2, 10, 20, 0.95);
+      border: 1px solid rgba(6, 182, 212, 0.4);
+      color: #e0f2fe;
+      font-size: 1rem;
+      font-family: ui-monospace, monospace;
+      outline: none;
+    }
+    .modal-status {
+      margin: 0 1rem 0.5rem;
+      font-family: ui-monospace, monospace;
+      font-size: 0.65rem;
+      color: rgba(103, 232, 249, 0.75);
+      min-height: 1rem;
+      text-align: center;
+    }
+    .modal-status.ok { color: #6ee7b7; }
+    .modal-status.err { color: #f87171; }
+    .modal-foot {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem 1rem;
+      border-top: 1px solid rgba(6, 182, 212, 0.2);
+    }
+    .btn-save {
+      flex: 1;
+      padding: 0.7rem;
+      border: none;
+      border-radius: 0.7rem;
+      background: #0891b2;
+      color: #020617;
+      font-family: 'Orbitron', system-ui, sans-serif;
+      font-weight: 700;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+    .btn-clear {
+      padding: 0.7rem 0.9rem;
+      border-radius: 0.7rem;
+      border: 1px solid rgba(248, 113, 113, 0.35);
+      background: rgba(15, 23, 42, 0.9);
+      color: #f87171;
+      font-family: ui-monospace, monospace;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    /* Hidden helpers kept for JS compatibility */
+    #hud-mode-text, #status-indicator-dot, #live-clock { display: none; }
+  </style>
+</head>
+<body>
+  <div class="starfield" aria-hidden="true"></div>
+
+  <div class="app">
+    <!-- Top status pills -->
+    <div class="top-row">
+      <div class="pill" id="status-pill-wrap" role="button" tabindex="0" title="Tap to speak">
+        <span class="pill-dot" id="status-indicator-dot"></span>
+        <div class="pill-text">
+          <span class="pill-title">ATLASAI CORE</span>
+          <span class="pill-sub" id="status-pill">ONLINE</span>
+        </div>
+      </div>
+      <div class="pill pill-key" id="key-pill" role="button" tabindex="0" title="API key settings">
+        <i class="fa-solid fa-key"></i>
+        <div class="pill-text">
+          <span class="pill-title">KEY :</span>
+          <span class="pill-sub" id="key-status-text">KEY</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- System transcript -->
+    <div class="transcript-card">
+      <div class="transcript-head">
+        <div class="transcript-label">
+          <i class="fa-solid fa-brain"></i>
+          <span>SYSTEM TRANSCRIPT</span>
+        </div>
+        <span class="ready-badge" id="ready-badge">READY</span>
+      </div>
+      <p id="transcript-feed" role="status" aria-live="polite">"Tap the central reactor or top badge to initiate voice communication..."</p>
+      <div id="media-output-container" class="hidden"></div>
+    </div>
+
+    <!-- Central reactor -->
+    <div class="reactor-stage">
+      <div class="reactor-wrap" id="reactor-wrap">
+        <div id="canvas-container"></div>
+        <div class="reactor-core" id="reactor-core" role="button" tabindex="0" aria-label="Tap to speak" title="Tap to speak">
+          <i class="fa-solid fa-microphone" id="mic-icon"></i>
+          <button type="button" id="main-mic-button" tabindex="-1">
+            <span id="mic-btn-text">TAP TO SPEAK</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom telemetry -->
+    <div class="telemetry">
+      <div class="tele-item">
+        <i class="fa-solid fa-atom"></i>
+        <div class="tele-text">
+          <span class="tele-label">SYSTEM</span>
+          <span class="tele-value" id="hud-mode-text">STANDBY</span>
+        </div>
+      </div>
+      <div class="tele-divider"></div>
+      <div class="tele-item">
+        <i class="fa-solid fa-bolt"></i>
+        <div class="tele-text">
+          <span class="tele-label">LATENCY</span>
+          <span class="tele-value" id="hud-latency-text">0 ms</span>
+        </div>
+      </div>
+      <div class="tele-divider"></div>
+      <div class="tele-item">
+        <i class="fa-solid fa-gauge-high"></i>
+        <div class="tele-text">
+          <span class="tele-label">FPS</span>
+          <span class="tele-value" id="fps-text">--</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEY MODAL -->
+  <div id="key-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="key-modal-title">
+    <div id="key-modal-panel">
+      <div class="modal-head">
+        <h3 id="key-modal-title"><i class="fa-solid fa-key"></i> API KEY SETTINGS</h3>
+        <button type="button" id="modal-close-btn" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <label for="groq-key-input">GROQ API KEY (PRIMARY)</label>
+          <input id="groq-key-input" type="password" placeholder="gsk_..." autocomplete="off" enterkeyhint="next">
+        </div>
+        <div>
+          <label for="gemini-key-input">GEMINI API KEY (SEARCH &amp; GRAPHICS)</label>
+          <input id="gemini-key-input" type="password" placeholder="AIzaSy..." autocomplete="off" enterkeyhint="done">
+        </div>
+      </div>
+      <p class="modal-status" id="key-save-status"></p>
+      <div class="modal-foot">
+        <button type="button" class="btn-save" id="btn-save">SAVE KEYS</button>
+        <button type="button" class="btn-clear" id="btn-clear">CLEAR</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase module — cloud key sync -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'atlas-ai-core';
+
+    function resolveFirebaseConfig() {
+      try {
+        if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+          return typeof __firebase_config === 'string' ? JSON.parse(__firebase_config) : __firebase_config;
+        }
+      } catch (e) {}
+      try {
+        const stored = window.atlasStore.getItem('ATLAS_FIREBASE_CONFIG');
+        if (stored) return JSON.parse(stored);
+      } catch (e) {}
+      return null;
+    }
+
+    let db = null;
+    let auth = null;
+    let currentUser = null;
+    let authReady = null;
+    let authReadyResolve = null;
+
+    function resetAuthGate() {
+      authReady = new Promise((resolve) => { authReadyResolve = resolve; });
+    }
+    resetAuthGate();
+
+    async function waitForAuth(ms = 8000) {
+      if (currentUser && db) return currentUser;
+      return Promise.race([
+        authReady,
+        new Promise((resolve) => setTimeout(() => resolve(currentUser), ms))
+      ]);
+    }
+
+    function keysDocRef() {
+      return doc(db, 'artifacts', appId, 'users', currentUser.uid, 'config', 'user_keys');
+    }
+
+    async function loadKeysFromCloud() {
+      if (!db || !currentUser) return false;
+      try {
+        const docSnap = await getDoc(keysDocRef());
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          if (data.groqKey) window.atlasStore.setItem('ATLAS_GROQ_KEY', data.groqKey);
+          if (data.geminiKey) window.atlasStore.setItem('ATLAS_GEMINI_KEY', data.geminiKey);
+          window.updateKeyBadge && window.updateKeyBadge();
+          return true;
+        }
+      } catch (err) {
+        console.warn('Cloud load failed:', err);
+      }
+      return false;
+    }
+
+    async function saveKeysToCloud(groqKey, geminiKey) {
+      await waitForAuth();
+      if (!db || !currentUser) {
+        return { ok: false, reason: 'cloud_unavailable' };
+      }
+      try {
+        await setDoc(keysDocRef(), {
+          groqKey: groqKey || '',
+          geminiKey: geminiKey || '',
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+        return { ok: true };
+      } catch (err) {
+        console.warn('Cloud save failed:', err);
+        return { ok: false, reason: err.message || 'save_failed' };
+      }
+    }
+
+    async function clearKeysFromCloud() {
+      await waitForAuth();
+      if (!db || !currentUser) return { ok: false, reason: 'cloud_unavailable' };
+      try {
+        await deleteDoc(keysDocRef());
+        return { ok: true };
+      } catch (err) {
+        console.warn('Cloud clear failed:', err);
+        return { ok: false, reason: err.message || 'clear_failed' };
+      }
+    }
+
+    window.cloudSaveKeys = saveKeysToCloud;
+    window.cloudClearKeys = clearKeysFromCloud;
+    window.cloudLoadKeys = loadKeysFromCloud;
+    window.cloudIsReady = () => !!(db && currentUser);
+
+    try {
+      const firebaseConfig = resolveFirebaseConfig();
+      if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.projectId !== 'demo') {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        onAuthStateChanged(auth, async (user) => {
+          currentUser = user || null;
+          if (user) {
+            if (authReadyResolve) authReadyResolve(user);
+            await loadKeysFromCloud();
+          }
+        });
+
+        try {
+          if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+            await signInWithCustomToken(auth, __initial_auth_token);
+          } else {
+            await signInAnonymously(auth);
+          }
+        } catch (err) {
+          console.warn('Firebase Auth failed:', err);
+          if (authReadyResolve) authReadyResolve(null);
+        }
+      } else {
+        console.info('Cloud sync idle — no Firebase config (set ATLAS_FIREBASE_CONFIG or host __firebase_config).');
+        if (authReadyResolve) authReadyResolve(null);
+      }
+    } catch (e) {
+      console.warn('Firestore initialization skipped:', e);
+      if (authReadyResolve) authReadyResolve(null);
+    }
+  </script>
+
+  <script>
+
+    // Durable key storage: localStorage first, mirrored to IndexedDB, with an in-memory cache so
+    // synchronous callers keep working. Survives webviews that wipe or block one of the two layers.
+    window.atlasStore = (function () {
+      const KEYS = ['ATLAS_GROQ_KEY', 'ATLAS_GEMINI_KEY', 'ATLAS_FIREBASE_CONFIG'];
+      const mem = {};
+      let lsOk = false, idbOk = false, dbPromise = null;
+
+      function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+      function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+      function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+      try { localStorage.setItem('__atlas_probe', '1'); localStorage.removeItem('__atlas_probe'); lsOk = true; } catch (e) {}
+
+      function openDb() {
+        if (dbPromise) return dbPromise;
+        dbPromise = new Promise((resolve) => {
+          try {
+            const req = indexedDB.open('atlas-core', 1);
+            req.onupgradeneeded = () => req.result.createObjectStore('kv');
+            req.onsuccess = () => { idbOk = true; resolve(req.result); };
+            req.onerror = () => resolve(null);
+            req.onblocked = () => resolve(null);
+          } catch (e) { resolve(null); }
+        });
+        return dbPromise;
+      }
+      function idbWrite(fn) {
+        openDb().then((db) => {
+          if (!db) return;
+          try { fn(db.transaction('kv', 'readwrite').objectStore('kv')); } catch (e) {}
+        });
+      }
+
+      const api = {
+        getItem(k) { return (k in mem) ? mem[k] : lsGet(k); },
+        setItem(k, v) {
+          mem[k] = v;
+          if (lsSet(k, v)) lsOk = true;
+          idbWrite((st) => st.put(v, k));
+        },
+        removeItem(k) {
+          mem[k] = null;
+          lsDel(k);
+          idbWrite((st) => st.delete(k));
+        },
+        isDurable() { return lsOk || idbOk; },
+        // Restore anything localStorage lost from IndexedDB, and mirror what localStorage still has.
+        hydrate() {
+          try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+          return openDb().then((db) => new Promise((resolve) => {
+            if (!db) return resolve();
+            try {
+              const st = db.transaction('kv', 'readwrite').objectStore('kv');
+              KEYS.forEach((k) => {
+                const req = st.get(k);
+                req.onsuccess = () => {
+                  const have = api.getItem(k);
+                  if (have == null && req.result != null) { mem[k] = req.result; lsSet(k, req.result); }
+                  else if (have != null && req.result == null) { st.put(have, k); }
+                };
+              });
+              st.transaction.oncomplete = () => resolve();
+              st.transaction.onerror = () => resolve();
+              st.transaction.onabort = () => resolve();
+            } catch (e) { resolve(); }
+          }));
+        }
+      };
+      return api;
+    })();
+
+    let scene, camera, renderer, wireMesh, innerCore;
+    let recognition;
+    let isListening = false;
+    let isPresenting = false;
+    let currentState = 'STANDBY';
+    let audioCtx = null;
+    let fpsFrames = 0;
+    let fpsLast = performance.now();
+    let rafId = null;
+    let resizeHandler = null;
+    let activeRequest = null;
+    let requestSeq = 0;
+    const reduceMotion = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+
+    window.playAtlasSound = function(type) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+        if (type === 'activate') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+          osc.start(now); osc.stop(now + 0.15);
+        } else if (type === 'thinking') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(600, now);
+          osc.frequency.linearRampToValueAtTime(400, now + 0.1);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+          osc.start(now); osc.stop(now + 0.1);
+        } else if (type === 'complete') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.08);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+          osc.start(now); osc.stop(now + 0.2);
+        }
+      } catch (e) {}
+    };
+
+    window.sanitizeKey = function(key) {
+      if (!key) return '';
+      return key.trim().replace(/["'\s\r\n]/g, '');
+    };
+
+    // Official model IDs (Nov 2026)
+    // Groq: https://console.groq.com/docs/models
+    // Gemini: https://ai.google.dev/gemini-api/docs/models
+    window.ATLAS_MODELS = {
+      // Groq free/dev: llama-3.3-70b-versatile retired Aug 16 2026
+      groq: 'openai/gpt-oss-120b',
+      groqFallbacks: ['openai/gpt-oss-20b', 'qwen/qwen3.8-27b'],
+      geminiSearch: 'gemini-3.8-flash',
+      geminiImage: 'gemini-3.1-flash-image'
+    };
+
+    window.sanitizeModel = function(modelName) {
+      if (!modelName) return window.ATLAS_MODELS.groq;
+      return modelName.trim().replace(/["'\s\r\n]/g, '');
+    };
+
+    document.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+    document.addEventListener('touchmove', function (e) {
+      if (e.scale !== 1) e.preventDefault();
+    }, { passive: false });
+
+    function init3DCore(attempt) {
+      attempt = attempt || 0;
+      const container = document.getElementById('canvas-container');
+      const wrap = document.getElementById('reactor-wrap');
+      if (!container) return;
+      if (typeof THREE === 'undefined') {
+        if (attempt < 50) setTimeout(() => init3DCore(attempt + 1), 80);
+        return;
+      }
+
+      // Force explicit pixel size from the wrap so iOS never gets 0x0
+      let w = (wrap && wrap.clientWidth) || container.clientWidth || 0;
+      let h = (wrap && wrap.clientHeight) || container.clientHeight || 0;
+      if (w < 32 || h < 32) {
+        w = Math.round(Math.min(window.innerWidth * 0.62, 220));
+        h = w;
+        if (wrap) {
+          wrap.style.width = w + 'px';
+          wrap.style.height = h + 'px';
+        }
+      }
+      container.style.width = w + 'px';
+      container.style.height = h + 'px';
+
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+      if (resizeHandler) {
+        window.removeEventListener('resize', resizeHandler);
+        window.removeEventListener('orientationchange', resizeHandler);
+        resizeHandler = null;
+      }
+      if (renderer) {
+        try { renderer.dispose(); } catch (e) {}
+        renderer = null;
+      }
+      while (container.firstChild) container.removeChild(container.firstChild);
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(42, w / h, 0.1, 1000);
+      camera.position.z = 3.6;
+
+      try {
+        renderer = new THREE.WebGLRenderer({
+          alpha: true,
+          antialias: true,
+          powerPreference: 'default',
+          failIfMajorPerformanceCaveat: false
+        });
+      } catch (e) {
+        console.warn('WebGL unavailable — using CSS wireframe:', e);
+        return;
+      }
+
+      renderer.setClearColor(0x000000, 0);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setSize(w, h, true);
+      const canvas = renderer.domElement;
+      canvas.style.cssText = 'display:block;width:100%;height:100%;position:absolute;top:0;left:0;';
+      container.appendChild(canvas);
+
+            // Outer wireframe shell (matches screenshot icosahedron)
+      const geometry = new THREE.IcosahedronGeometry(1.15, 1);
+      const material = new THREE.MeshBasicMaterial({
+        color: 0x22d3ee,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.85
+      });
+      wireMesh = new THREE.Mesh(geometry, material);
+      scene.add(wireMesh);
+
+      // Subtle inner shell
+      const innerGeom = new THREE.IcosahedronGeometry(0.88, 0);
+      const innerMat = new THREE.MeshBasicMaterial({
+        color: 0x67e8f9,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.4
+      });
+      innerCore = new THREE.Mesh(innerGeom, innerMat);
+      scene.add(innerCore);
+
+      function resizeCore() {
+        if (!container || !renderer || !camera) return;
+        const rw = Math.max(container.clientWidth || 200, 1);
+        const rh = Math.max(container.clientHeight || 200, 1);
+        camera.aspect = rw / rh;
+        camera.updateProjectionMatrix();
+        renderer.setSize(rw, rh, false);
+      }
+      resizeHandler = () => { resizeCore(); setTimeout(resizeCore, 250); };
+      window.addEventListener('resize', resizeHandler);
+      window.addEventListener('orientationchange', resizeHandler);
+
+      function animate() {
+        rafId = requestAnimationFrame(animate);
+        if (wireMesh && innerCore) {
+          const speed = (currentState === 'THINKING' ? 0.035 : currentState === 'SPEAKING' ? 0.022 : currentState === 'LISTENING' ? 0.018 : 0.005) * (reduceMotion ? 0.25 : 1);
+          wireMesh.rotation.x += speed * 0.6;
+          wireMesh.rotation.y += speed;
+          innerCore.rotation.x -= speed * 0.8;
+          innerCore.rotation.y -= speed * 1.1;
+        }
+        if (renderer && scene && camera) renderer.render(scene, camera);
+
+        // FPS counter
+        fpsFrames++;
+        const now = performance.now();
+        if (now - fpsLast >= 1000) {
+          const fpsEl = document.getElementById('fps-text');
+          if (fpsEl) fpsEl.textContent = String(Math.min(60, Math.round(fpsFrames * 1000 / (now - fpsLast))));
+          fpsFrames = 0;
+          fpsLast = now;
+        }
+      }
+      animate();
+      requestAnimationFrame(() => {
+        resizeCore();
+        setTimeout(resizeCore, 150);
+        setTimeout(resizeCore, 400);
+      });
+    }
+
+    function ensureInputVisible(el) {
+      if (!el) return;
+      setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }), 300);
+    }
+
+    window.openKeyModal = function() {
+      const modal = document.getElementById('key-modal');
+      const groqInput = document.getElementById('groq-key-input');
+      const geminiInput = document.getElementById('gemini-key-input');
+      if (groqInput) {
+        groqInput.value = window.atlasStore.getItem('ATLAS_GROQ_KEY') || '';
+        groqInput.onfocus = () => ensureInputVisible(groqInput);
+      }
+      if (geminiInput) {
+        geminiInput.value = window.atlasStore.getItem('ATLAS_GEMINI_KEY') || '';
+        geminiInput.onfocus = () => ensureInputVisible(geminiInput);
+      }
+      setKeySaveStatus(
+        (window.cloudIsReady && window.cloudIsReady())
+          ? 'Cloud sync ready'
+          : 'Cloud linking… (always saves on device)'
+      );
+      if (modal) modal.classList.remove('hidden');
+    };
+
+    window.closeKeyModal = function() {
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      const modal = document.getElementById('key-modal');
+      if (modal) modal.classList.add('hidden');
+    };
+
+    function setKeySaveStatus(msg, kind) {
+      const el = document.getElementById('key-save-status');
+      if (!el) return;
+      el.textContent = msg || '';
+      el.className = 'modal-status' + (kind ? ' ' + kind : '');
+    }
+
+    window.saveKey = async function() {
+      const groqInput = document.getElementById('groq-key-input');
+      const geminiInput = document.getElementById('gemini-key-input');
+      const saveBtn = document.getElementById('btn-save');
+      let groqKey = window.sanitizeKey(groqInput ? groqInput.value : '');
+      let geminiKey = window.sanitizeKey(geminiInput ? geminiInput.value : '');
+
+      // Always persist on device first
+      if (groqKey) window.atlasStore.setItem('ATLAS_GROQ_KEY', groqKey);
+      else window.atlasStore.removeItem('ATLAS_GROQ_KEY');
+      if (geminiKey) window.atlasStore.setItem('ATLAS_GEMINI_KEY', geminiKey);
+      else window.atlasStore.removeItem('ATLAS_GEMINI_KEY');
+      window.updateKeyBadge();
+
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'SAVING…';
+      }
+      setKeySaveStatus('Saving to device…');
+
+      let cloudResult = { ok: false, reason: 'cloud_unavailable' };
+      if (typeof window.cloudSaveKeys === 'function') {
+        setKeySaveStatus('Syncing to cloud…');
+        try {
+          cloudResult = await window.cloudSaveKeys(groqKey, geminiKey) || cloudResult;
+        } catch (e) {
+          cloudResult = { ok: false, reason: e.message || 'save_failed' };
+        }
+      }
+
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'SAVE KEYS';
+      }
+
+      if (cloudResult.ok) {
+        setKeySaveStatus('Saved on device + cloud', 'ok');
+        window.playAtlasSound('complete');
+        setTimeout(() => window.closeKeyModal(), 700);
+      } else {
+        setKeySaveStatus(window.atlasStore.isDurable() ? 'Saved on this device only (cloud offline)' : 'Storage is blocked here, so keys will be lost on restart', 'err');
+        window.playAtlasSound('complete');
+        setTimeout(() => window.closeKeyModal(), 1100);
+      }
+    };
+
+    window.clearKey = async function() {
+      window.atlasStore.removeItem('ATLAS_GROQ_KEY');
+      window.atlasStore.removeItem('ATLAS_GEMINI_KEY');
+      window.updateKeyBadge();
+      setKeySaveStatus('Clearing…');
+      if (typeof window.cloudClearKeys === 'function') {
+        try { await window.cloudClearKeys(); } catch (e) {}
+      }
+      setKeySaveStatus('Keys cleared', 'ok');
+      window.closeKeyModal();
+    };
+
+    window.updateKeyBadge = function() {
+      const groqKey = window.sanitizeKey(window.atlasStore.getItem('ATLAS_GROQ_KEY'));
+      const geminiKey = window.sanitizeKey(window.atlasStore.getItem('ATLAS_GEMINI_KEY'));
+      const keyBadge = document.getElementById('key-status-text');
+      if (keyBadge) {
+        if (groqKey || geminiKey) {
+          keyBadge.innerText = 'ACTIVE';
+          keyBadge.style.color = '#22d3ee';
+        } else {
+          keyBadge.innerText = 'INACTIVE';
+          keyBadge.style.color = '#67e8f9';
+        }
+      }
+    };
+
+    window.setSystemState = function(state) {
+      currentState = state;
+      const statusPill = document.getElementById('status-pill');
+      const modeText = document.getElementById('hud-mode-text');
+      const micBtnText = document.getElementById('mic-btn-text');
+      const readyBadge = document.getElementById('ready-badge');
+      const micIcon = document.getElementById('mic-icon');
+
+      if (statusPill) {
+        if (state === 'STANDBY') statusPill.innerText = 'ONLINE';
+        else statusPill.innerText = state;
+      }
+      if (modeText) modeText.innerText = state === 'STANDBY' ? 'STANDBY' : state;
+
+      if (micBtnText) {
+        if (state === 'LISTENING') micBtnText.innerText = 'LISTENING...';
+        else if (state === 'THINKING') micBtnText.innerText = 'PROCESSING';
+        else if (state === 'SPEAKING') micBtnText.innerText = 'SPEAKING';
+        else micBtnText.innerText = 'TAP TO SPEAK';
+      }
+
+      if (readyBadge) {
+        if (state === 'STANDBY') {
+          readyBadge.innerText = 'READY';
+          readyBadge.style.color = '#6ee7b7';
+          readyBadge.style.borderColor = 'rgba(52, 211, 153, 0.55)';
+        } else {
+          readyBadge.innerText = state;
+          readyBadge.style.color = '#67e8f9';
+          readyBadge.style.borderColor = 'rgba(6, 182, 212, 0.55)';
+        }
+      }
+
+      if (micIcon) {
+        micIcon.style.color = state === 'LISTENING' ? '#34d399' : state === 'THINKING' ? '#fbbf24' : '#22d3ee';
+      }
+
+      if (wireMesh && innerCore) {
+        const colorMap = {
+          STANDBY: 0x22d3ee,
+          LISTENING: 0x34d399,
+          THINKING: 0xfbbf24,
+          SPEAKING: 0x67e8f9
+        };
+        const hex = colorMap[state] || 0x22d3ee;
+        wireMesh.material.color.setHex(hex);
+        innerCore.material.color.setHex(hex);
+      }
+    };
+
+    window.showMediaImage = function(src) {
+      const container = document.getElementById('media-output-container');
+      if (!container) return;
+      const img = document.createElement('img');
+      img.alt = 'AI generated image';
+      img.style.cssText = 'width:100%;border-radius:12px;border:1px solid rgba(34,211,238,0.4);margin-top:4px;';
+      img.src = src;
+      container.replaceChildren(img);
+      container.classList.remove('hidden');
+    };
+
+    window.clearMediaOutput = function() {
+      const container = document.getElementById('media-output-container');
+      if (container) {
+        container.innerHTML = '';
+        container.classList.add('hidden');
+      }
+    };
+
+    window.executeSystemDiagnostics = function() {
+      window.playAtlasSound('activate');
+      window.setSystemState('THINKING');
+      const startTime = performance.now();
+      const cores = navigator.hardwareConcurrency || 'N/A';
+      const userAgent = navigator.userAgent.includes("Chrome") ? "Chrome Engine" : "WebKit Engine";
+      const latency = Math.round(performance.now() - startTime);
+      const report = `Diagnostics verified. CPU Cores: ${cores}. Platform: ${userAgent}. Latency: ${latency}ms. All subsystems optimal.`;
+      const feed = document.getElementById('transcript-feed');
+      if (feed) feed.innerText = `"${report}"`;
+      const latencyEl = document.getElementById('hud-latency-text');
+      if (latencyEl) latencyEl.innerText = `${latency} ms`;
+      window.speakLinePromise(report);
+    };
+
+    window.performGroundedSearch = async function(searchQuery) {
+      window.clearMediaOutput();
+      window.playAtlasSound('thinking');
+      window.setSystemState('THINKING');
+      const startTime = performance.now();
+      const feed = document.getElementById('transcript-feed');
+      if (feed) feed.innerText = `"Accessing global telemetry on: ${searchQuery}..."`;
+
+      const apiKey = window.sanitizeKey(window.atlasStore.getItem('ATLAS_GEMINI_KEY') || "");
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${window.ATLAS_MODELS.geminiSearch}:generateContent`;
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: searchQuery }] }],
+            tools: [{ "google_search": {} }],
+            systemInstruction: { parts: [{ text: "You are ATLAS. Answer directly and concisely in 2 sentences." }] }
+          })
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          const errMsg = result?.error?.message || `HTTP ${response.status}`;
+          if (feed) feed.innerText = `"[SEARCH ERROR: ${errMsg}]"`;
+          window.setSystemState('STANDBY');
+          window.processUserQuery(searchQuery);
+          return;
+        }
+        const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || "No data retrieved.";
+        let sources = [];
+        const metadata = result?.candidates?.[0]?.groundingMetadata;
+        if (metadata) {
+          const chunks = metadata.groundingChunks || metadata.groundingAttributions || [];
+          sources = chunks.map(att => ({ uri: att.web?.uri, title: att.web?.title })).filter(s => s.uri && s.title);
+        }
+        const latency = Math.round(performance.now() - startTime);
+        const latencyEl = document.getElementById('hud-latency-text');
+        if (latencyEl) latencyEl.innerText = `${latency} ms`;
+        if (feed) feed.innerText = `"${text}"`;
+        if (sources.length > 0) {
+          const mediaContainer = document.getElementById('media-output-container');
+          const head = document.createElement('div');
+          head.style.cssText = 'font-size:10px;font-weight:700;color:#22d3ee;font-family:monospace;margin-bottom:4px;';
+          head.textContent = 'VERIFIED CITATIONS:';
+          const list = document.createElement('div');
+          list.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;';
+          sources.slice(0, 3).forEach(src => {
+            let url;
+            try { url = new URL(src.uri); } catch (e) { return; }
+            if (url.protocol !== 'https:' && url.protocol !== 'http:') return;
+            const a = document.createElement('a');
+            a.href = url.href;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.textContent = src.title;
+            a.style.cssText = 'padding:4px 8px;border-radius:6px;background:rgba(8,51,68,0.8);border:1px solid rgba(6,182,212,0.3);font-size:10px;color:#a5f3fc;text-decoration:none;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace;';
+            list.appendChild(a);
+          });
+          mediaContainer.replaceChildren(head, list);
+          mediaContainer.classList.remove('hidden');
+        }
+        window.speakLinePromise(text);
+      } catch (e) {
+        console.warn('Grounded search failed:', e);
+        window.processUserQuery(searchQuery);
+      }
+    };
+
+    window.generateAiImage = async function(imagePrompt) {
+      window.clearMediaOutput();
+      window.playAtlasSound('thinking');
+      window.setSystemState('THINKING');
+      const feed = document.getElementById('transcript-feed');
+      if (feed) feed.innerText = `"Synthesizing schematic for: ${imagePrompt}..."`;
+      const apiKey = window.sanitizeKey(window.atlasStore.getItem('ATLAS_GEMINI_KEY') || "");
+      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${window.ATLAS_MODELS.geminiImage}:generateContent`;
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: imagePrompt }] }],
+            generationConfig: { responseModalities: ['IMAGE'] }
+          })
+        });
+        const result = await response.json();
+        const parts = result?.candidates?.[0]?.content?.parts || [];
+        const inlinePart = parts.find(p => p.inlineData?.data);
+        const base64Data = inlinePart?.inlineData?.data;
+        const mime = inlinePart?.inlineData?.mimeType || 'image/png';
+        const mediaContainer = document.getElementById('media-output-container');
+        mediaContainer.classList.remove('hidden');
+        if (base64Data) {
+          window.showMediaImage(`data:${mime};base64,${base64Data}`);
+        } else {
+          window.showMediaImage(`https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=400&height=250&nologo=true`);
+        }
+        if (feed) feed.innerText = `"Schematic rendered."`;
+        window.playAtlasSound('complete');
+        window.setSystemState('STANDBY');
+      } catch (e) {
+        const mediaContainer = document.getElementById('media-output-container');
+        mediaContainer.classList.remove('hidden');
+        window.showMediaImage(`https://image.pollinations.ai/prompt/${encodeURIComponent(imagePrompt)}?width=400&height=250&nologo=true`);
+        if (feed) feed.innerText = `"Schematic rendered."`;
+        window.playAtlasSound('complete');
+        window.setSystemState('STANDBY');
+      }
+    };
+
+    window.generateStructuredJson = async function(jsonPrompt) {
+      window.setSystemState('THINKING');
+      const promptText = `Return ONLY a valid, raw JSON object (no markdown, no backticks, no text) for: ${jsonPrompt}`;
+      await window.processUserQuery(promptText);
+    };
+
+    window.processUserQuery = async function(promptText) {
+      if (activeRequest) activeRequest.abort();
+      activeRequest = new AbortController();
+      const signal = activeRequest.signal;
+      const seq = ++requestSeq;
+      window.clearMediaOutput();
+      window.playAtlasSound('thinking');
+      window.setSystemState('THINKING');
+      const startTime = performance.now();
+      const apiKey = window.sanitizeKey(window.atlasStore.getItem('ATLAS_GROQ_KEY') || '');
+      let answer = '';
+      let groqAttempted = false;
+
+      if (apiKey && (apiKey.startsWith('gsk_') || apiKey.length > 20)) {
+        groqAttempted = true;
+        const modelChain = [
+          window.sanitizeModel(window.ATLAS_MODELS.groq),
+          ...((window.ATLAS_MODELS.groqFallbacks || []).map(window.sanitizeModel))
+        ];
+        let lastErr = '';
+        for (const targetModel of modelChain) {
+          try {
+            const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+              },
+              signal,
+              body: JSON.stringify({
+                model: targetModel,
+                messages: [
+                  { role: 'system', content: 'You are ATLAS, an advanced AI system. Keep answers extremely concise and clear under 30 words.' },
+                  { role: 'user', content: promptText }
+                ],
+                max_tokens: 180
+              })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              answer = data.choices?.[0]?.message?.content || '';
+              if (answer) break;
+            } else {
+              const errData = await res.json().catch(() => ({}));
+              lastErr = errData.error?.message || `HTTP ${res.status}`;
+              // Try next model on not-found / access errors
+              if (/does not exist|not found|do not have access|model_not_found/i.test(lastErr)) {
+                continue;
+              }
+              answer = `[GROQ ERROR: ${lastErr}]`;
+              break;
+            }
+          } catch (e) {
+            if (e.name === 'AbortError') return;
+            lastErr = 'CONNECTION FAILED';
+            answer = `[GROQ CONNECTION FAILED]`;
+            break;
+          }
+        }
+        if (!answer && lastErr) answer = `[GROQ ERROR: ${lastErr}]`;
+      }
+
+      if (!answer && !groqAttempted) {
+        try {
+          const models = ['openai-fast', 'mistral', 'llama', 'qwen'].map(window.sanitizeModel);
+          const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          const timeoutId = controller ? setTimeout(() => controller.abort(), 3500) : null;
+          const requests = models.map(m =>
+            fetch(`https://text.pollinations.ai/${encodeURIComponent("You are ATLAS. Answer concisely under 25 words: " + promptText)}?model=${m}&cache=true&private=true`, {
+              signal: controller ? controller.signal : undefined
+            }).then(r => r.ok ? r.text() : Promise.reject())
+          );
+          answer = await Promise.any(requests);
+          if (timeoutId) clearTimeout(timeoutId);
+        } catch (e) {
+          answer = "No response. Add a Groq key with the KEY badge, or check your connection.";
+        }
+      }
+
+      const latency = Math.round(performance.now() - startTime);
+      if (seq !== requestSeq) return;
+      const latencyText = document.getElementById('hud-latency-text');
+      if (latencyText) latencyText.innerText = `${latency} ms`;
+      answer = (answer || '').replace(/^["']|["']$/g, '').trim();
+      const feed = document.getElementById('transcript-feed');
+      if (feed) feed.innerText = `"${answer}"`;
+      window.playAtlasSound('complete');
+      window.speakLinePromise(answer);
+    };
+
+    function setFeed(text) {
+      const feed = document.getElementById('transcript-feed');
+      if (feed) feed.innerText = `"${text}"`;
+    }
+
+    // Commands must start the utterance (after an optional "atlas"), so "withdraw cash" no longer triggers image generation.
+    function routeTranscript(transcript) {
+      const t = transcript.trim();
+      const text = t.replace(/^(hey\s+)?atlas[,.\s]+/i, '') || t;
+      if (/\b(introduce yourself|who are you)\b/i.test(text)) return triggerAtlasIntroduction();
+      if (/\b(system status|diagnostics)\b/i.test(text)) return window.executeSystemDiagnostics();
+      let m = text.match(/^search(?:\s+for)?\s+(.+)/i);
+      if (m) return window.performGroundedSearch(m[1].trim());
+      m = text.match(/^(?:generate (?:an? )?image(?: of)?|make an image(?: of)?|draw)\s+(.+)/i);
+      if (m) return window.generateAiImage(m[1].trim());
+      return window.processUserQuery(text);
+    }
+
+    const SPEECH_ERRORS = {
+      'not-allowed': 'Microphone access is blocked. Allow it in your browser settings.',
+      'service-not-allowed': 'Speech recognition is blocked on this device.',
+      'no-speech': 'No speech detected. Tap to try again.',
+      'audio-capture': 'No microphone found.',
+      'network': 'Speech service unreachable. Check your connection.'
+    };
+
+    // "not-allowed" is also what browsers report when the speech service refuses, even with the mic granted.
+    async function explainMicBlock() {
+      let state = null;
+      try { state = (await navigator.permissions.query({ name: 'microphone' })).state; } catch (e) {}
+      const insecure = !window.isSecureContext || location.protocol === 'file:';
+      if (state === 'denied') setFeed('Microphone is blocked for this page. Allow it in site settings, then reload.');
+      else if (insecure) setFeed('Speech recognition is refused on pages not served over https. Host this file or open it from localhost.');
+      else if (state === 'granted') setFeed('Microphone is allowed, but the speech service refused it. On iPhone, turn on Settings > Siri > Dictation. In an in-app browser, open the page in Safari or Chrome.');
+      else setFeed('Speech recognition was refused. If the microphone is allowed, turn on Dictation (iPhone) or Google voice typing (Android), or open the page in Safari or Chrome.');
+    }
+
+    function initSpeechModule() {
+      if (recognition) return recognition;
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return null;
+      recognition = new SR();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      recognition.onstart = () => {
+        isListening = true;
+        window.setSystemState('LISTENING');
+        window.playAtlasSound('activate');
+      };
+      recognition.onresult = (event) => {
+        isListening = false;
+        const transcript = event.results[0][0].transcript;
+        setFeed(transcript);
+        routeTranscript(transcript);
+      };
+      recognition.onerror = (event) => {
+        isListening = false;
+        isPresenting = false;
+        window.setSystemState('STANDBY');
+        if (event.error === 'aborted') return;
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') { explainMicBlock(); return; }
+        setFeed(SPEECH_ERRORS[event.error] || `Speech error: ${event.error}`);
+      };
+      recognition.onend = () => {
+        isListening = false;
+        if (currentState === 'LISTENING') window.setSystemState('STANDBY');
+      };
+      return recognition;
+    }
+
+    window.toggleSpeechRecognition = function() {
+      if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+      }
+      isPresenting = false;
+      const rec = initSpeechModule();
+      if (!rec) {
+        setFeed('Speech recognition unavailable on this device.');
+        return;
+      }
+      if (isListening) {
+        try { rec.stop(); } catch (e) {}
+        isListening = false;
+        window.setSystemState('STANDBY');
+        return;
+      }
+      try {
+        rec.start();
+      } catch (e) {
+        try { rec.abort(); } catch (err) {}
+        setTimeout(() => { try { rec.start(); } catch (err) {} }, 150);
+      }
+    };
+
+    async function triggerAtlasIntroduction() {
+      if (isPresenting) return;
+      isPresenting = true;
+      const pitchLines = [
+        "Allow me to introduce myself. I am ATLAS, your AI Operating Core.",
+        "I provide high-speed inference, grounded web telemetry, and real-time system diagnostics at your command.",
+        "Systems online and fully operational."
+      ];
+      for (const line of pitchLines) {
+        const feed = document.getElementById('transcript-feed');
+        if (feed) feed.innerText = `"${line}"`;
+        await window.speakLinePromise(line);
+      }
+      isPresenting = false;
+      window.setSystemState('STANDBY');
+    }
+
+    window.speakLinePromise = function(text) {
+      return new Promise((resolve) => {
+        if (!('speechSynthesis' in window)) {
+          isPresenting = false;
+          window.setSystemState('STANDBY');
+          resolve();
+          return;
+        }
+        try { window.speechSynthesis.cancel(); } catch (e) {}
+        window.setSystemState('SPEAKING');
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 1.0;
+        utterance.pitch = 0.95;
+        let completed = false;
+        const completeHandler = () => {
+          if (completed) return;
+          completed = true;
+          isPresenting = false;
+          window.setSystemState('STANDBY');
+          resolve();
+        };
+        utterance.onend = completeHandler;
+        utterance.onerror = completeHandler;
+        try {
+          window.speechSynthesis.speak(utterance);
+        } catch (e) {
+          completeHandler();
+        }
+      });
+    };
+
+    // Event delegation — works even if inline handlers are blocked by the webview
+    document.addEventListener('click', function(e) {
+      var t = e.target;
+      if (!t) return;
+      // climb up to a known control
+      var node = t;
+      for (var i = 0; i < 6 && node; i++) {
+        var id = node.id;
+        if (id === 'key-pill') { e.preventDefault(); window.openKeyModal(); return; }
+        if (id === 'status-pill-wrap' || id === 'reactor-core' || id === 'main-mic-button') {
+          e.preventDefault();
+          window.toggleSpeechRecognition();
+          return;
+        }
+        if (id === 'btn-save') { e.preventDefault(); window.saveKey(); return; }
+        if (id === 'btn-clear') { e.preventDefault(); window.clearKey(); return; }
+        if (id === 'modal-close-btn') { e.preventDefault(); window.closeKeyModal(); return; }
+        if (id === 'key-modal' && t === node) { window.closeKeyModal(); return; }
+        node = node.parentElement;
+      }
+    }, true);
+
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { window.closeKeyModal(); return; }
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const el = e.target;
+      if (el && el.getAttribute && el.getAttribute('role') === 'button') { e.preventDefault(); el.click(); }
+    });
+
+    function bootAtlas() {
+      try { init3DCore(); } catch (e) { console.warn(e); }
+      try { initSpeechModule(); } catch (e) { console.warn(e); }
+      try { window.updateKeyBadge(); } catch (e) { console.warn(e); }
+      window.atlasStore.hydrate().then(() => { try { window.updateKeyBadge(); } catch (e) {} });
+    }
+    if (document.readyState === 'complete') bootAtlas();
+    else window.addEventListener('load', bootAtlas);
+    setTimeout(function() {
+      var c = document.getElementById('canvas-container');
+      if (c && !c.querySelector('canvas') && typeof THREE !== 'undefined') init3DCore(0);
+    }, 600);
+  </script>
+</body>
+</html>
